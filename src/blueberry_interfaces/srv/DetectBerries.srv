@@ -1,0 +1,5 @@
+# DetectBerries.srv
+# 请求部分
+bool start  #启动检测
+---
+blueberry_interfaces/DetectedBerries berries

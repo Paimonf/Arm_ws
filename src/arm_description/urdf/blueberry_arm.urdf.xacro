@@ -1,0 +1,289 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="blueberry_arm">
+ 
+  <!-- 材料定义 -->
+  <material name="blue">
+    <color rgba="0 0.5 1 1"/>
+  </material>
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+  <material name="silver">
+    <color rgba="0.8 0.8 0.8 1"/>
+  </material>
+  <material name="black">
+    <color rgba="0.1 0.1 0.1 1"/>
+  </material>
+ 
+<link name="dummy_base">
+  <inertial>
+    <mass value="0.001" />
+    <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
+  </inertial>
+</link>
+ 
+<joint name="dummy_joint" type="fixed">
+  <parent link="dummy_base" />
+  <child link="base_link" />
+</joint>
+ 
+  <!-- 基座 -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.3 0.165 0.083"/>  <!-- 长300mm 宽165mm 高103mm -->
+      </geometry>
+      <origin xyz="0 0 0.0415" rpy="0 0 0"/>  <!-- 中心位置 -->
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.3 0.165 0.083"/>
+      </geometry>
+      <origin xyz="0 0 0.0415" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="5.0"/>
+      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.05"/>
+    </inertial>
+  </link>
+ 
+  <!-- 旋转关节 (底座圆盘) -->
+  <link name="rotation_base">
+    <visual>
+      <geometry>
+        <cylinder length="0.02" radius="0.06"/>  <!-- 圆盘高度20mm -->
+      </geometry>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.02" radius="0.06"/>
+      </geometry>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.0009" ixy="0" ixz="0" iyy="0.0009" iyz="0" izz="0.0018"/>
+    </inertial>
+  </link>
+ 
+  <joint name="base_rotation_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="rotation_base"/>
+    <origin xyz="0 0 0.083" rpy="0 0 0"/>  <!-- 位于基座顶部中心 -->
+    <axis xyz="0 0 1"/>  <!-- 绕Z轴旋转 -->
+    <limit lower="-3.14" upper="3.14" effort="100" velocity="1.0"/>  <!-- 360°旋转 -->
+  </joint>
+ 
+  <!-- 关节1 (俯仰) -->
+  <link name="arm1_link">
+    <visual>
+      <geometry>
+        <box size="0.129 0.05 0.05"/>  <!-- 长129mm -->
+      </geometry>
+      <origin xyz="0.0645 0 0" rpy="0 0 0"/>  <!-- 中心位置 -->
+      <material name="red"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.129 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0.0645 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+    </inertial>
+  </link>
+ 
+  <joint name="joint1" type="revolute">
+    <parent link="rotation_base"/>
+    <child link="arm1_link"/>
+    <origin xyz="0 0 0.02" rpy="0 -1.57 0"/>  <!-- 位于旋转圆盘顶部 -->
+    <axis xyz="0 1 0"/>  <!-- 绕Y轴俯仰 -->
+    <limit lower="0" upper="1.57" effort="50" velocity="0.5"/>  <!-- -90°~90° -->
+  </joint>
+ 
+  <!-- 关节2 (俯仰) -->
+  <link name="arm2_link">
+    <visual>
+      <geometry>
+        <box size="0.129 0.05 0.05"/>  <!-- 长129mm -->
+      </geometry>
+      <origin xyz="0.0645 0 0" rpy="0 0 0"/>
+      <material name="red"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.129 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0.0645 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+    </inertial>
+  </link>
+ 
+  <joint name="joint2" type="revolute">
+    <parent link="arm1_link"/>
+    <child link="arm2_link"/>
+    <origin xyz="0.129 0 0" rpy="0 0 0"/>  <!-- 连接arm1末端 -->
+    <axis xyz="0 1 0"/>  <!-- 绕Y轴俯仰 -->
+    <limit lower="0" upper="1.57" effort="50" velocity="0.5"/>
+  </joint>
+ 
+  <!-- 关节3 (俯仰) -->
+  <link name="arm3_link">
+    <visual>
+      <geometry>
+        <box size="0.071 0.04 0.04"/>  <!-- 长171mm (含夹爪) -->
+      </geometry>
+      <origin xyz="0.0355 0 0" rpy="0 0 0"/>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.071 0.04 0.04"/>
+      </geometry>
+      <origin xyz="0.0355 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>
+      <inertia ixx="0.00005" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/>
+    </inertial>
+  </link>
+ 
+  <joint name="joint3" type="revolute">
+    <parent link="arm2_link"/>
+    <child link="arm3_link"/>
+    <origin xyz="0.129 0 0" rpy="0 0 0"/>  <!-- 连接arm2末端 -->
+    <axis xyz="0 1 0"/>  <!-- 绕Y轴俯仰 -->
+    <limit lower="0" upper="1.57" effort="30" velocity="0.5"/>
+  </joint>
+ 
+  <!-- 末端执行器 -->
+  <link name="end_effector">
+    <visual>
+      <geometry>
+        <cylinder length="0.10" radius="0.02"/>  <!-- 简化表示 -->
+      </geometry>
+      <origin xyz="0.05 0 0" rpy="0 1.57 0"/>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.10" radius="0.02"/>
+      </geometry>
+      <origin xyz="0.05 0 0" rpy="0 1.57 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.00002" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00005"/>
+    </inertial>
+  </link>
+ 
+  <joint name="gripper_joint" type="fixed">
+    <parent link="arm3_link"/>
+    <child link="end_effector"/>
+    <origin xyz="0.071 0 0" rpy="0 0 0"/>  <!-- 位于arm3末端 -->
+  </joint>
+ 
+  <!-- 相机 -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.0155 0.0653 0.0225"/>  
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.0155 0.0653 0.0225"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.15"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00005"/>
+    </inertial>
+  </link>
+ 
+  <joint name="camera_joint" type="fixed">
+    <parent link="arm3_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.071 0 0.03125" rpy="0 0 0"/>  
+  </joint>
+ 
+  <!-- 光学坐标系定义 -->
+  <link name="camera_color_optical_frame"/>
+ 
+  <!-- 光学坐标系关节（必须按此标准方向） -->
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_color_optical_frame"/>
+    <origin rpy="0 -1.57 1.57" xyz="0 0 0"/> <!-- 关键：转换为光学坐标系 -->
+  </joint>
+ 
+  <!-- 添加传输 -->
+  <transmission name="tran1">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="base_rotation_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  
+  <!-- 为轮子添加传输 -->
+  <transmission name="front_left_wheel_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="front_left_wheel_joint">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="front_left_wheel_motor">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  
+  <transmission name="front_right_wheel_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="front_right_wheel_joint">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="front_right_wheel_motor">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  
+  <transmission name="rear_left_wheel_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rear_left_wheel_joint">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="rear_left_wheel_motor">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  
+  <transmission name="rear_right_wheel_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rear_right_wheel_joint">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="rear_right_wheel_motor">
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+ 
+ 
+</robot>
