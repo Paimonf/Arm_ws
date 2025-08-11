@@ -4,12 +4,12 @@ from rclpy.node import Node
 from rclpy.action import ActionServer
 from rclpy.duration import Duration
 
-import serial
 import struct
 import threading
 import time
 import math
 from enum import Enum
+from smbus2 import SMBus, i2c_msg
 
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from control_msgs.action import FollowJointTrajectory
@@ -17,7 +17,7 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Point
 from blueberry_interfaces.msg import ArmStatus
 
-# 串口通信协议定义
+# I2C通信协议定义
 class STM32Command(Enum):
     CMD_SYNC = 0xAA
     CMD_SET_TRAJECTORY = 0x10
@@ -46,9 +46,8 @@ class STM32CommunicationNode(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('serial_port', '/dev/ttyACM0'),  # 默认串口设备
-                ('baud_rate', 115200),           # 波特率
-                ('timeout', 0.1),                # 串口超时时间(秒)
+                ('i2c_bus', 1),                  # I2C总线号
+                ('i2c_address', 0x50),           # STM32 I2C地址
                 ('joint_names', ['base_rotation_joint', 'joint1', 'joint2', 'joint3']),
                 ('update_rate', 20.0),           # 状态更新频率(Hz)
                 ('max_trajectory_points', 50),   # 最大轨迹点数
@@ -57,13 +56,13 @@ class STM32CommunicationNode(Node):
                 ('ack_timeout', 0.2),            # ACK超时时间(秒)
                 ('position_scale', 1000.0),      # 位置值缩放因子(弧度->毫弧度)
                 ('velocity_scale', 1000.0),      # 速度值缩放因子(弧度/秒->毫弧度/秒)
+                ('max_i2c_payload', 32),         # I2C最大有效载荷
             ]
         )
         
         # 获取参数
-        self.serial_port = self.get_parameter('serial_port').value
-        self.baud_rate = self.get_parameter('baud_rate').value
-        self.timeout = self.get_parameter('timeout').value
+        self.i2c_bus_num = self.get_parameter('i2c_bus').value
+        self.i2c_address = self.get_parameter('i2c_address').value
         self.joint_names = self.get_parameter('joint_names').value
         self.update_rate = self.get_parameter('update_rate').value
         self.max_trajectory_points = self.get_parameter('max_trajectory_points').value
@@ -72,10 +71,11 @@ class STM32CommunicationNode(Node):
         self.ack_timeout = self.get_parameter('ack_timeout').value
         self.position_scale = self.get_parameter('position_scale').value
         self.velocity_scale = self.get_parameter('velocity_scale').value
+        self.max_i2c_payload = self.get_parameter('max_i2c_payload').value
         
-        # 串口对象
-        self.ser = None
-        self.serial_lock = threading.Lock()
+        # I2C对象
+        self.i2c_bus = None
+        self.i2c_lock = threading.Lock()
         
         # 当前关节状态
         self.current_joint_positions = [0.0] * len(self.joint_names)
@@ -111,8 +111,8 @@ class STM32CommunicationNode(Node):
             10
         )
         
-        # 初始化串口连接
-        self.init_serial_connection()
+        # 初始化I2C连接
+        self.init_i2c_connection()
         
         # 创建定时器用于状态更新
         self.update_timer = self.create_timer(
@@ -120,19 +120,15 @@ class STM32CommunicationNode(Node):
             self.update_status
         )
         
-        self.get_logger().info("STM32 Communication Node initialized")
+        self.get_logger().info("STM32 I2C Communication Node initialized")
 
-    def init_serial_connection(self):
-        """初始化串口连接"""
+    def init_i2c_connection(self):
+        """初始化I2C连接"""
         try:
-            with self.serial_lock:
-                self.ser = serial.Serial(
-                    port=self.serial_port,
-                    baudrate=self.baud_rate,
-                    timeout=self.timeout
-                )
+            with self.i2c_lock:
+                self.i2c_bus = SMBus(self.i2c_bus_num)
                 self.arm_connected = True
-                self.get_logger().info(f"Connected to STM32 at {self.serial_port}")
+                self.get_logger().info(f"Connected to I2C bus {self.i2c_bus_num}")
                 
                 # 发送同步命令
                 if self.send_sync():
@@ -141,8 +137,8 @@ class STM32CommunicationNode(Node):
                 else:
                     self.get_logger().error("Failed to synchronize with STM32")
                 
-        except serial.SerialException as e:
-            self.get_logger().error(f"Serial connection error: {str(e)}")
+        except Exception as e:
+            self.get_logger().error(f"I2C connection error: {str(e)}")
             self.arm_connected = False
             self.arm_ready = False
 
@@ -169,9 +165,9 @@ class STM32CommunicationNode(Node):
         return sum(data) & 0xFF
 
     def send_command(self, cmd, data):
-        """发送命令到STM32"""
-        if not self.ser or not self.ser.is_open:
-            self.get_logger().error("Serial port not open")
+        """通过I2C发送命令到STM32"""
+        if not self.i2c_bus:
+            self.get_logger().error("I2C bus not initialized")
             return False
             
         # 构建消息: [SYNC, LENGTH, CMD, DATA..., CHECKSUM]
@@ -186,49 +182,77 @@ class STM32CommunicationNode(Node):
         checksum = self.calculate_checksum(message)
         message.append(checksum)
         
-        # 发送消息
-        self.ser.write(message)
-        return True
+        # 检查长度是否超过I2C限制
+        if len(message) > self.max_i2c_payload:
+            self.get_logger().error(f"Message too long for I2C: {len(message)} > {self.max_i2c_payload}")
+            return False
+        
+        try:
+            # 使用i2c_msg进行高效写入
+            write_msg = i2c_msg.write(self.i2c_address, message)
+            with self.i2c_lock:
+                self.i2c_bus.i2c_rdwr(write_msg)
+            return True
+        except Exception as e:
+            self.get_logger().error(f"I2C write error: {str(e)}")
+            return False
 
     def read_response(self, timeout=0.2):
-        """读取STM32响应"""
+        """通过I2C读取STM32响应"""
+        if not self.i2c_bus:
+            return None
+            
         start_time = time.time()
-        buffer = bytearray()
         
+        # 首先尝试读取1字节以检查是否有数据
         while (time.time() - start_time) < timeout:
-            if self.ser.in_waiting > 0:
-                byte = self.ser.read(1)
-                if not byte:
-                    continue
-                    
-                buffer.extend(byte)
+            try:
+                # 尝试读取1字节
+                read_msg = i2c_msg.read(self.i2c_address, 1)
+                with self.i2c_lock:
+                    self.i2c_bus.i2c_rdwr(read_msg)
                 
-                # 检查是否收到完整消息 (至少3字节: SYNC, LENGTH, CMD)
-                if len(buffer) >= 3:
+                if len(list(read_msg)) > 0:
+                    # 如果收到第一个字节，继续读取完整消息
+                    first_byte = list(read_msg)[0]
+                    
                     # 检查同步字节
-                    if buffer[0] != STM32Command.CMD_SYNC.value:
-                        buffer = buffer[1:]  # 移除非同步字节
+                    if first_byte != STM32Command.CMD_SYNC.value:
+                        # 如果不是同步字节，继续等待
+                        time.sleep(0.001)
                         continue
                     
-                    # 获取消息长度
-                    length = buffer[1]
+                    # 读取长度字节
+                    len_msg = i2c_msg.read(self.i2c_address, 1)
+                    with self.i2c_lock:
+                        self.i2c_bus.i2c_rdwr(len_msg)
                     
-                    # 检查是否收到完整消息
-                    if len(buffer) >= length + 2:  # 长度包括校验和
-                        # 提取完整消息
-                        message = buffer[:length+2]
+                    if len(list(len_msg)) > 0:
+                        length = list(len_msg)[0]
                         
-                        # 验证校验和
-                        received_checksum = message[-1]
-                        calculated_checksum = self.calculate_checksum(message[:-1])
+                        # 读取剩余消息 (长度包括校验和)
+                        data_msg = i2c_msg.read(self.i2c_address, length + 1)
+                        with self.i2c_lock:
+                            self.i2c_bus.i2c_rdwr(data_msg)
                         
-                        if received_checksum == calculated_checksum:
-                            # 返回消息内容 (去掉SYNC和长度字节)
-                            return message[2:-1]
-                        else:
-                            self.get_logger().warn("Checksum error in response")
-                            return None
-            time.sleep(0.001)
+                        data_bytes = list(data_msg)
+                        if len(data_bytes) == length + 1:
+                            # 构建完整消息: SYNC + LENGTH + DATA + CHECKSUM
+                            full_message = bytearray([first_byte, length]) + bytearray(data_bytes)
+                            
+                            # 验证校验和
+                            received_checksum = full_message[-1]
+                            calculated_checksum = self.calculate_checksum(full_message[:-1])
+                            
+                            if received_checksum == calculated_checksum:
+                                # 返回消息内容 (去掉SYNC和长度字节)
+                                return full_message[2:-1]
+                            else:
+                                self.get_logger().warn("Checksum error in response")
+                                return None
+            except Exception as e:
+                self.get_logger().warn(f"I2C read error: {str(e)}")
+                time.sleep(0.005)
         
         return None
 
@@ -412,7 +436,7 @@ class STM32CommunicationNode(Node):
             
         try:
             # 发送命令但不等待响应
-            with self.serial_lock:
+            with self.i2c_lock:
                 return self.send_command(STM32Command.CMD_GET_STATUS.value, b'')
         except Exception as e:
             self.get_logger().error(f"Status request failed: {str(e)}")
@@ -484,7 +508,7 @@ class STM32CommunicationNode(Node):
         if not self.arm_ready:
             # 尝试重新连接
             if not self.arm_connected:
-                self.init_serial_connection()
+                self.init_i2c_connection()
             return
                 
         # 定期请求状态更新
@@ -510,6 +534,7 @@ class STM32CommunicationNode(Node):
         if self.error_code != STM32ErrorCode.ERR_NONE.value:
             self.handle_error(self.error_code)
             self.error_code = STM32ErrorCode.ERR_NONE.value  # 重置错误码
+
     def emergency_stop(self):
         """发送紧急停止命令"""
         self.get_logger().error("EMERGENCY STOP COMMAND SENT")
@@ -526,9 +551,12 @@ class STM32CommunicationNode(Node):
         )
 
     def destroy_node(self):
-        """节点销毁时关闭串口"""
-        if self.ser and self.ser.is_open:
-            self.ser.close()
+        """节点销毁时关闭I2C连接"""
+        if self.i2c_bus:
+            try:
+                self.i2c_bus.close()
+            except:
+                pass
         super().destroy_node()
 
 def main(args=None):
