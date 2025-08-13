@@ -24,9 +24,10 @@ setup(
     entry_points={
         'console_scripts': [
             'version_node = control_pkg.version_node:main',
-            'blueberry_ctrl = control_pkg.blueberry_ctrl:main',
+            'start_node = control_pkg.start_node:main',
             'versionn_node = control_pkg.versionn_node:main',
             'Serial_node = control_pkg.Serial_node:main',
+            'test_node = control_pkg.test_node:main',
             'pathplan_node = control_pkg.pathplan_node:main',
             'simulation_joint_publisher = control_pkg.simulation_joint_publisher:main',
         ],

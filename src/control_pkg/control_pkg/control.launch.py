@@ -35,10 +35,10 @@ def generate_launch_description():
         name='version_node'
     )
     
-    blueberry_ctrl = Node(  # 修正了可执行文件名
+    start_node = Node(  # 修正了可执行文件名
         package='control_pkg',
-        executable='blueberry_ctrl',
-        name='blueberry_ctrl'
+        executable='start_node',
+        name='start_node'
     )
     
     versionn_node = Node(
@@ -58,6 +58,12 @@ def generate_launch_description():
         executable='pathplan_node',
         name='pathplan_node'
     )
+
+    test_node = Node(
+        package='control_pkg',
+        executable='test_node',
+        name='test_node'
+    )
     
     return LaunchDescription([
         orbbec_launch,
@@ -65,6 +71,8 @@ def generate_launch_description():
         # version_node,
         # blueberry_ctrl,
         versionn_node,
+        test_node,
+        start_node,
         # serial_node,
         # pathplan_node
     ])

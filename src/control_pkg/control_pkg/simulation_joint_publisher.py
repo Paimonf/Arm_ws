@@ -27,7 +27,7 @@ class SimulationJointPublisher(Node):
         ]
         
         # 初始化关节位置 (默认值)
-        self.joint_positions = [0.0, 0.0, 0.0, 0.0]
+        self.joint_positions = [0.0, 0.0, 0.0, 2.0]
         
         # 设置定时器（50Hz）
         self.timer = self.create_timer(0.02, self.publish_joint_states)  # 50Hz

@@ -93,10 +93,10 @@ class BerryHarvestingNode(Node):
             'joint3'
         ]
         self.joint_limits = {
-            'base_rotation': (-math.pi, math.pi),  # 基座旋转范围
-            'joint1': (0, math.pi/2),             # 关节1范围
-            'joint2': (0, math.pi/2),             # 关节2范围
-            'joint3': (-math.pi, 0)               # 关节3范围
+            'base_rotation': (-math.pi*2/3, math.pi*2/3),  # 基座旋转范围
+            'joint1': (-math.pi*2/3, math.pi*2/3),             # 关节1范围
+            'joint2': (-math.pi*2/3, math.pi*2/3),             # 关节2范围
+            'joint3': (-math.pi*2/3, math.pi*2/3)               # 关节3范围
         }
         # 新增：等待获取初始关节状态
         self.wait_for_initial_joint_state() 
@@ -229,7 +229,7 @@ class BerryHarvestingNode(Node):
             joint_angles = self.calculate_joint_angles(berry.position) 
             
             if joint_angles is None:
-                self.get_logger().warn(f"Skipping  berry {i+1} - unreachable")
+                self.get_logger().warn(f"跳过  蓝莓 {i+1} - unreachable")
                 continue
                 
             # 添加移动到位姿点的轨迹点
@@ -270,6 +270,7 @@ class BerryHarvestingNode(Node):
     def is_at_position(self, target_positions, tolerance):
         """检查当前关节是否在目标位置附近"""
         if not self.joint_state_received: 
+            self.get_logger().info("没有接受到关节状态信息! /is_at_position() 函数将返回 False.")
             return False 
             
         for current, target in zip(self.current_joint_positions,  target_positions):
@@ -333,8 +334,8 @@ class BerryHarvestingNode(Node):
         target_z = berry_position.z - self.base_height 
         
         # 3. 调整目标点：末端执行器在蓝莓上方approach_distance处
-        # 末端执行器方向：垂直向下（φ = π）
-        phi = math.pi
+        # 末端执行器方向：水平（φ = π/2）
+        phi = math.pi/2
         
         # 4. 调用逆运动学函数
         angles = self.inverse_kinematics(
@@ -347,9 +348,12 @@ class BerryHarvestingNode(Node):
         )
         
         if angles is None:
-            self.get_logger().warn("Target position unreachable by inverse kinematics")
+            self.get_logger().warn("目标位置无法到达!")
             return None
-            
+        
+        # 输出目标角度
+        self.get_logger().info(f'角度计算: {angles}')
+
         # 解包角度：θ₁, θ₂, θ₃
         theta1, theta2, theta3 = angles
         
@@ -363,8 +367,8 @@ class BerryHarvestingNode(Node):
             lower, upper = self.joint_limits[name]
             if not (lower <= angle <= upper):
                 self.get_logger().warn(
-                    f"Joint {name} angle {math.degrees(angle):.1f}° "
-                    f"out of range [{math.degrees(lower):.1f}°, {math.degrees(upper):.1f}°]"
+                    f"关节 {name} 角度 {math.degrees(angle):.1f}° "
+                    f"超出范围 [{math.degrees(lower):.1f}°, {math.degrees(upper):.1f}°]"
                 )
                 return None 
                 
@@ -382,8 +386,11 @@ class BerryHarvestingNode(Node):
         r_max = L1 + L2
         
         if not (r_min <= d <= r_max) or x3 < 0 or y3 < 0:
+            self.get_logger().warn("目标位置无法到达1")
             return None  # 目标不可达
         
+        
+
         # 步骤3：计算θ₂
         cos_theta2 = (d**2 - L1**2 - L2**2) / (2 * L1 * L2)
         theta2 = math.acos(cos_theta2)  # 唯一解
@@ -402,6 +409,7 @@ class BerryHarvestingNode(Node):
         if all(0 <= angle <= math.pi/2 for angle in angles):
             return theta1, theta2, theta3
         else:
+            self.get_logger().warn("目标位置无法到达2")
             return None  # 角度越界
  
 def main(args=None):

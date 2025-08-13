@@ -197,7 +197,7 @@ class BerryDetectionNode(Node):
         
         # 记录处理时间 
         processing_time = time.time()  - start_time
-        self.get_logger().info(f"Detected  {len(response.berries.berries)}  ripe berries in {processing_time:.2f} seconds")
+        self.get_logger().info(f"Detected  {response.berries.berries}  ripe berries in {processing_time:.2f} seconds")
         
         return response
  

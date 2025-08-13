@@ -19,11 +19,11 @@ from blueberry_interfaces.msg import ArmStatus
 
 # I2C通信协议定义
 class STM32Command(Enum):
-    CMD_SYNC = 0xAA
-    CMD_SET_TRAJECTORY = 0x10
-    CMD_GET_STATUS = 0x20
-    CMD_EMERGENCY_STOP = 0xF0
-    CMD_HOME = 0x30
+    CMD_SYNC = 0xAA             # 同步命令
+    CMD_SET_TRAJECTORY = 0x10   # 设置轨迹命令
+    CMD_GET_STATUS = 0x20       # 获取状态命令
+    CMD_EMERGENCY_STOP = 0xF0   # 紧急停止命令
+    CMD_HOME = 0x30             # 回HOME命令
 
 class STM32Response(Enum):
     RESP_ACK = 0x55
@@ -128,7 +128,7 @@ class STM32CommunicationNode(Node):
             with self.i2c_lock:
                 self.i2c_bus = SMBus(self.i2c_bus_num)
                 self.arm_connected = True
-                self.get_logger().info(f"Connected to I2C bus {self.i2c_bus_num}")
+                self.get_logger().info(f"I2C总线 {self.i2c_bus_num}连接成功！")
                 
                 # 发送同步命令
                 if self.send_sync():
@@ -167,7 +167,7 @@ class STM32CommunicationNode(Node):
     def send_command(self, cmd, data):
         """通过I2C发送命令到STM32"""
         if not self.i2c_bus:
-            self.get_logger().error("I2C bus not initialized")
+            self.get_logger().error("I2C总线没有初始化！")
             return False
             
         # 构建消息: [SYNC, LENGTH, CMD, DATA..., CHECKSUM]
@@ -410,7 +410,7 @@ class STM32CommunicationNode(Node):
         
         # 等待轨迹完成
         start_time = self.get_clock().now()
-        last_point_time = trajectory.points[-1].time_from_start
+        last_point_time = 20#trajectory.points[-1].time_from_start
         timeout_duration = Duration(seconds=last_point_time.sec + last_point_time.nanosec / 1e9 + 2.0)  # 加2秒容差
         
         while self.trajectory_active and rclpy.ok():
