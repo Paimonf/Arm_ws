@@ -46,7 +46,7 @@ class STM32CommunicationNode(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('i2c_bus', 1),                  # I2C总线号
+                ('i2c_bus', 4),                  # I2C总线号
                 ('i2c_address', 0x50),           # STM32 I2C地址
                 ('joint_names', ['base_rotation_joint', 'joint1', 'joint2', 'joint3']),
                 ('update_rate', 20.0),           # 状态更新频率(Hz)

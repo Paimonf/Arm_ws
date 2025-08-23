@@ -31,8 +31,8 @@ class BerryHarvestingNode(Node):
                 ('harvest_time', 2.0),  # 采摘一个蓝莓所需时间(秒)
                 ('move_time', 3.0),     # 移动位置所需时间(秒)
                 ('joint_state_topic', '/joint_states'),  # 新增：关节状态话题 
-                # ('position_tolerance', 0.05),  # 新增：关节位置容差 
-                # ('velocity_tolerance', 0.01),  # 新增：关节速度容差 
+                ('position_tolerance', 0.05),  # 新增：关节位置容差 
+                ('velocity_tolerance', 0.01),  # 新增：关节速度容差 
             ]
         )
         
@@ -283,7 +283,7 @@ class BerryHarvestingNode(Node):
         feedback = feedback_msg.feedback  
         self.get_logger().debug( 
             f"Trajectory execution: {feedback.actual.time_from_start.sec}." 
-            f"{feedback.actual.time_from_start.nanose  * 1e-9:.2f}s elapsed"
+            f"{feedback.actual.time_from_start.nanosec  * 1e-9:.2f}s elapsed"
         )
  
     def goal_response_callback(self, future):
@@ -303,8 +303,8 @@ class BerryHarvestingNode(Node):
         if result.error_code  == FollowJointTrajectory.Result.SUCCESSFUL:
             self.get_logger().info("Trajectory  executed successfully")
             # 更新当前关节状态为最后位置（通常是home位置）
-            if self.trajectory.points: 
-                self.current_joint_positions  = self.trajectory.points[-1].positions 
+            
+            self.current_joint_positions = self.home_position
         else:
             self.get_logger().error(f"Trajectory  execution failed: error code {result.error_code}") 
  

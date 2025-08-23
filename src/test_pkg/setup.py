@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 from glob import glob
 import os
 
-package_name = 'control_pkg'
+package_name = 'test_pkg'
 
 setup(
     name=package_name,
@@ -23,15 +23,11 @@ setup(
     # tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'version_node = control_pkg.version_node:main',
-            'start_node = control_pkg.start_node:main',
-            'versionn_node = control_pkg.versionn_node:main',
-            'Serial_node = control_pkg.Serial_node:main',
-            'test_pathplan_node = control_pkg.test_pathplan_node:main',
-            'test_pathplan_node_1 = control_pkg.test_pathplan_node_1:main',
-            'test_serial_node = control_pkg.test_serial_node:main',
-            'pathplan_node = control_pkg.pathplan_node:main',
-            'simulation_joint_publisher = control_pkg.simulation_joint_publisher:main',
+            'version_node =test_pkg.version_node:main',
+            'start_node =test_pkg.start_node:main',
+            'serial_node =test_pkg.serial_node:main',
+            'pathplan_node =test_pkg.pathplan_node:main',
+            'simulation_joint_publisher =test_pkg.simulation_joint_publisher:main',
         ],
     },
 )

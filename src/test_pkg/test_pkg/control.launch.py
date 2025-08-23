@@ -30,63 +30,34 @@ def generate_launch_description():
     
     # 控制包的各种节点
     version_node = Node(
-        package='control_pkg',
+        package='test_pkg',
         executable='version_node',
         name='version_node'
     )
     
     start_node = Node(  # 修正了可执行文件名
-        package='control_pkg',
+        package='test_pkg',
         executable='start_node',
         name='start_node'
     )
     
-    versionn_node = Node(
-        package='control_pkg',
-        executable='versionn_node',
-        name='versionn_node'
-    )
-    
     serial_node = Node(
-        package='control_pkg',
-        executable='Serial_node',
-        name='Serial_node'
+        package='test_pkg',
+        executable='serial_node',
+        name='serial_node'
     )
     
     pathplan_node = Node(
-        package='control_pkg',
+        package='test_pkg',
         executable='pathplan_node',
         name='pathplan_node'
-    )
-
-    test_pathplan_node = Node(
-        package='control_pkg',
-        executable='test_pathplan_node',
-        name='test_pathplan_node'
-    )
-    
-    test_pathplan_node_1 = Node(
-        package='control_pkg',
-        executable='test_pathplan_node_1',
-        name='test_pathplan_node_1'
-    )
-
-    test_serial_node = Node(
-        package='control_pkg',
-        executable='test_serial_node',
-        name='test_serial_node'
     )
 
     return LaunchDescription([
         orbbec_launch,
         arm_description_launch,
-        # version_node,
-        # blueberry_ctrl,
-        versionn_node,
-        # test_pathplan_node,
-        test_serial_node,
-        test_pathplan_node_1,
+        version_node,
         start_node,
-        # serial_node,
-        # pathplan_node
+        serial_node,
+        pathplan_node
     ])

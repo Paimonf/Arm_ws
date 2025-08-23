@@ -16,7 +16,7 @@ class PeriodicPathPlanClient(Node):
             self.get_logger().info('服务不可用，等待中...')
         
         # 设置定时器，每5秒发送一次请求
-        self.timer = self.create_timer(10, self.send_request)
+        self.timer = self.create_timer(16.0, self.send_request)
         self.get_logger().info('定时路径规划客户端已启动，每1秒发送一次请求...')
 
     def send_request(self):
