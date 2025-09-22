@@ -74,7 +74,7 @@
     <child link="rotation_base"/>
     <origin xyz="0 0 0.083" rpy="0 0 0"/>  <!-- 位于基座顶部中心 -->
     <axis xyz="0 0 1"/>  <!-- 绕Z轴旋转 -->
-    <limit lower="-3.14" upper="3.14" effort="100" velocity="1.0"/>  <!-- 360°旋转 -->
+    <limit lower="-2.0944" upper="2.0944" effort="100" velocity="1.0"/>  <!-- 360°旋转 -->
   </joint>
  
   <!-- 关节1 (俯仰) -->
@@ -103,7 +103,7 @@
     <child link="arm1_link"/>
     <origin xyz="0 0 0.02" rpy="0 -1.57 0"/>  <!-- 位于旋转圆盘顶部 -->
     <axis xyz="0 1 0"/>  <!-- 绕Y轴俯仰 -->
-    <limit lower="0" upper="1.57" effort="50" velocity="0.5"/>  <!-- -90°~90° -->
+    <limit lower="-2.0944" upper="2.0944" effort="50" velocity="0.5"/>  <!-- -90°~90° -->
   </joint>
  
   <!-- 关节2 (俯仰) -->
@@ -132,7 +132,7 @@
     <child link="arm2_link"/>
     <origin xyz="0.129 0 0" rpy="0 0 0"/>  <!-- 连接arm1末端 -->
     <axis xyz="0 1 0"/>  <!-- 绕Y轴俯仰 -->
-    <limit lower="0" upper="1.57" effort="50" velocity="0.5"/>
+    <limit lower="-2.0944" upper="2.0944" effort="50" velocity="0.5"/>
   </joint>
  
   <!-- 关节3 (俯仰) -->
@@ -161,7 +161,7 @@
     <child link="arm3_link"/>
     <origin xyz="0.129 0 0" rpy="0 0 0"/>  <!-- 连接arm2末端 -->
     <axis xyz="0 1 0"/>  <!-- 绕Y轴俯仰 -->
-    <limit lower="0" upper="1.57" effort="30" velocity="0.5"/>
+    <limit lower="-2.0944" upper="2.0944" effort="30" velocity="0.5"/>
   </joint>
  
   <!-- 末端执行器 -->

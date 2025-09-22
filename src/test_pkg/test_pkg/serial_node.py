@@ -37,6 +37,7 @@ class STM32ErrorCode(Enum):
     ERR_TRAJECTORY_FULL = 3
     ERR_LIMIT_EXCEEDED = 4 
     ERR_COLLISION = 5
+    ERR_SERVO_READ = 6
  
 class STM32CommunicationNode(Node):
     def __init__(self):
@@ -57,7 +58,7 @@ class STM32CommunicationNode(Node):
                 ('joint_limits', [-2.094395, 2.094395]),  # 0° 到 240° 的弧度值 [0.0, 4.18879]
                 ('test_mode', False),             # 测试模式 
                 ('test_interval', 5.0),          # 测试发送间隔(秒)
-                ('test_positions', [0.18879, 2.09439, 2.09439, 2.00]),  # 测试位置数据 (0-1000)
+                ('test_positions', [0.0, 0.0, 0.0, -2.0]),  # 测试位置数据 (0-1000)
             ]
         )
 
@@ -305,7 +306,7 @@ class STM32CommunicationNode(Node):
         positions = []
         for p in point.positions: 
             # 确保位置在限制范围内 
-            clamped = max(self.min_angle,  min(self.max_angle,  p))
+            clamped = max(self.min_angle,  min(self.max_angle,  -p))
             # 转换为0-1000范围
             scaled = int(((clamped - self.min_angle)  / self.angle_range)  * 1000)
             positions.append(scaled) 
@@ -315,7 +316,7 @@ class STM32CommunicationNode(Node):
         for pos in positions:
             data.extend(struct.pack('>H',  pos))  # 大端16位无符号整数 (0-1000)
 
-        self.get_logger().info(" 测试3")
+        self.get_logger().info(f"发送舵机角度: {positions}")
         
         # 发送命令 
         return self.send_command_with_retry( 
@@ -409,16 +410,16 @@ class STM32CommunicationNode(Node):
             # 读取16位无符号整数
             scaled_value = struct.unpack('>H',  data[idx:idx+2])[0]
             # 转换回弧度值 (0-1000 -> 0° 到 240°)
-            position_rad = self.min_angle  + (scaled_value / 1000.0) * self.angle_range 
+            position_rad = -(self.min_angle  + (scaled_value / 1000.0) * self.angle_range )
             positions.append(position_rad) 
 
-        self.get_logger().info(f" 测试posions: {positions}")
+        self.get_logger().info(f"舵机返回信息: {positions}")
         
         # 更新状态
         self.current_joint_positions  = positions
         
         # 更新状态标志 
-        self.trajectory_active  = bool(status_flags & 0x01)
+        # self.trajectory_active  = bool(status_flags & 0x01)
         self.error_code  = (status_flags >> 1) & 0x0F
         
         return True
@@ -604,6 +605,8 @@ class STM32CommunicationNode(Node):
                 result.error_string = f"Failed to send trajectory point {i+1}"
                 return result
             
+            time.sleep(2)
+            
             # 发布反馈
             feedback = FollowJointTrajectory.Feedback()
             feedback.actual = point
@@ -630,20 +633,22 @@ class STM32CommunicationNode(Node):
         last_point_time = trajectory.points[-1].time_from_start
         timeout_duration = Duration(seconds=last_point_time.sec + last_point_time.nanosec / 1e9 + 2.0)  # 加2秒容差
         
-        while self.trajectory_active and rclpy.ok():
-            if self.get_clock().now() - start_time > timeout_duration:
-                goal_handle.abort()
-                result = FollowJointTrajectory.Result()
-                result.error_code = FollowJointTrajectory.Result.GOAL_TOLERANCE_VIOLATED
-                result.error_string = "Trajectory execution timed out"
-                return result
+        # while self.trajectory_active and rclpy.ok():
+        #     if self.get_clock().now() - start_time > timeout_duration:
+        #         goal_handle.abort()
+        #         result = FollowJointTrajectory.Result()
+        #         result.error_code = FollowJointTrajectory.Result.GOAL_TOLERANCE_VIOLATED
+        #         result.error_string = "Trajectory execution timed out"
+        #         return result
             
-            time.sleep(0.1)
+        time.sleep(0.1)
         
         # 轨迹成功完成
         goal_handle.succeed()
         result = FollowJointTrajectory.Result()
         result.error_code = FollowJointTrajectory.Result.SUCCESSFUL
+        self.trajectory_active = False
+        
         return result
 def main(args=None):
     rclpy.init(args=args) 

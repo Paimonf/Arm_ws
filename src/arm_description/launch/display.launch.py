@@ -21,7 +21,7 @@ def generate_launch_description():
         }]),
             
         Node(
-            package='control_pkg',
+            package='test_pkg',
             executable='simulation_joint_publisher',
             name='simulation_joint_publisher',
             output='screen'),

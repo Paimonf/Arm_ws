@@ -1,4 +1,4 @@
-bool start 
+blueberry_interfaces/DetectedBerries berries
 ---
 bool success
 string message

@@ -27,7 +27,14 @@ setup(
             'start_node =test_pkg.start_node:main',
             'serial_node =test_pkg.serial_node:main',
             'pathplan_node =test_pkg.pathplan_node:main',
+            'pathplan_moveit_node =test_pkg.pathplan_moveit_node:main',
             'simulation_joint_publisher =test_pkg.simulation_joint_publisher:main',
+            'qt_ros_brd_node =test_pkg.qt_ros_brd_node:main',
+            'qt_node =test_pkg.qt_node:main',
+            # 'debug_image_relay = test_pkg.debug_image_relay:main',
         ],
+        # 'gui_scripts': [
+        #     'qt_interface = test_pkg.qt_interface.start_qt_interface:main',
+        # ],
     },
 )

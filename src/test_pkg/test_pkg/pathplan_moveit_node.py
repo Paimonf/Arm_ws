@@ -218,13 +218,13 @@ class BerryHarvestingNode(Node):
             )
             trajectory.points.append(harvest_point) 
             
-            # 返回到安全位置 (起始位置)
-            time_from_start += self.move_time  
-            safe_point = self.create_trajectory_point( 
-                self.home_position, 
-                time_from_start 
-            )
-            trajectory.points.append(safe_point) 
+        # 返回到安全位置 (起始位置)
+        time_from_start += self.move_time  
+        safe_point = self.create_trajectory_point( 
+            self.home_position, 
+            time_from_start 
+        )
+        trajectory.points.append(safe_point) 
         
         # 创建并发送动作目标
         goal_msg = FollowJointTrajectory.Goal()

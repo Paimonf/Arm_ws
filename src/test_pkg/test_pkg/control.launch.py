@@ -1,11 +1,18 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource, FrontendLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 
 def generate_launch_description():
+    # 声明参数
+    use_sim_time = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Use simulation clock if true'
+    )
+    
     # 导入 orbbec_camera 的 gemini.launch.xml - 使用 FrontendLaunchDescriptionSource
     orbbec_launch = IncludeLaunchDescription(
         FrontendLaunchDescriptionSource([
@@ -25,9 +32,13 @@ def generate_launch_description():
                 'launch',
                 'display.launch.py'
             ])
-        ])
+        ]),
+        launch_arguments={
+            'use_sim_time': LaunchConfiguration('use_sim_time')
+        }.items()
     )
     
+
     # 控制包的各种节点
     version_node = Node(
         package='test_pkg',
@@ -35,7 +46,7 @@ def generate_launch_description():
         name='version_node'
     )
     
-    start_node = Node(  # 修正了可执行文件名
+    start_node = Node(
         package='test_pkg',
         executable='start_node',
         name='start_node'
@@ -53,11 +64,27 @@ def generate_launch_description():
         name='pathplan_node'
     )
 
+    pathplan_moveit_node = Node(
+        package='test_pkg',
+        executable='pathplan_moveit_node',
+        name='pathplan_moveit_node'
+    )
+
+    debug_image_relay = Node(
+        package='test_pkg',
+        executable='debug_image_relay',
+        name='debug_image_relay'
+    )
+
     return LaunchDescription([
+        use_sim_time,
         orbbec_launch,
         arm_description_launch,
+        # moveit_config_launch,  # 添加MoveIt配置启动
         version_node,
-        start_node,
+        # start_node,
         serial_node,
-        pathplan_node
+        # pathplan_moveit_node,
+        pathplan_node,
+        # debug_image_relay
     ])

@@ -1,0 +1,3 @@
+string signal_type
+string data
+builtin_interfaces/Time timestamp
