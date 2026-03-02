@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pathplan_node.py
 import rclpy 
 from rclpy.node import Node 
 from rclpy.action import ActionClient
@@ -35,6 +36,7 @@ class BerryHarvestingNode(Node):
                 ('velocity_tolerance', 0.01),  # 关节速度容差 
                 ('ik_solution_attempts', 10),  # 逆运动学求解尝试次数
                 ('preferred_orientation', 1.57),  # 首选末端方向（弧度），0表示垂直向下
+                ('PWM_limits',[50,80])
             ]
         )
         
@@ -52,6 +54,9 @@ class BerryHarvestingNode(Node):
         self.velocity_tolerance = self.get_parameter('velocity_tolerance').value 
         self.ik_solution_attempts = self.get_parameter('ik_solution_attempts').value
         self.preferred_orientation = self.get_parameter('preferred_orientation').value
+        self.PWM_limits=self.get_parameter('PWM_limits').value
+        self.min_PWM = self.PWM_limits[0]
+        self.max_PWM = self.PWM_limits[1]
         
         # 当前关节状态存储 
         self.current_joint_positions = None 
@@ -179,22 +184,22 @@ class BerryHarvestingNode(Node):
         trajectory.points.append(start_point) 
         
         # 第二步: 移动到起始位置（如果不在起始位置）
-        if not self.is_at_position(self.home_position, self.position_tolerance): 
-            time_from_start += self.move_time 
-            home_point = self.create_trajectory_point( 
-                self.home_position,  
-                time_from_start 
-            )
-            trajectory.points.append(home_point) 
-            self.get_logger().info("Adding move to home position")
-        else:
-            self.get_logger().info("Already at home position")
+        # if not self.is_at_position(self.home_position, self.position_tolerance): 
+        #     time_from_start += self.move_time 
+        home_point = self.create_trajectory_point( 
+            self.home_position,  
+            time_from_start 
+        )
+        trajectory.points.append(home_point) 
+        self.get_logger().info("Adding move to home position")
+        # else:
+        #     self.get_logger().info("Already at home position")
         
         # 对每个蓝莓进行采摘规划 
         for i, berry in enumerate(berries):
-            self.get_logger().info(f"Planning path for berry {i+1} at position: "
-                                  f"x={berry.position.x:.3f}, y={berry.position.y:.3f}, z={berry.position.z:.3f}") 
-            
+            self.get_logger().info(f"Planning path for berry {i+1} at position:"
+                                  f"x={berry.position.x:.3f}, y={berry.position.y:.3f}, z={berry.position.z:.3f}"
+                                  f"size={berry.size}") 
             # 计算采摘该蓝莓所需的关节角度
             joint_angles = self.calculate_joint_angles(berry.position) 
             
@@ -211,6 +216,7 @@ class BerryHarvestingNode(Node):
             trajectory.points.append(move_point) 
             
             # 模拟采摘动作 (保持位置)
+            joint_angles[3]=berry.size
             time_from_start += self.harvest_time 
             harvest_point = self.create_trajectory_point( 
                 joint_angles,
@@ -232,7 +238,7 @@ class BerryHarvestingNode(Node):
         
         self.get_logger().info("Sending trajectory to joint controller...")
         
-        self.send_goal_future = self.joint_trajectory_client.send_goal_async( 
+        self.send_goal_future = self.joint_trajectory_client.send_goal_async(
             goal_msg,
             feedback_callback=self.feedback_callback 
         )
@@ -296,11 +302,13 @@ class BerryHarvestingNode(Node):
             self.get_logger().error(f"Trajectory execution failed: error code {result.error_code}") 
  
 
-    def create_trajectory_point(self, positions, time_sec):
+    def create_trajectory_point(self, positions, time_sec,):
         """创建轨迹点"""
         point = JointTrajectoryPoint()
+        self.get_logger().info(f"位置：{positions}")
         point.positions = positions
         point.time_from_start = Duration(seconds=time_sec).to_msg()
+        #point.effort=
         return point 
  
     def calculate_joint_angles(self, berry_position):
@@ -379,6 +387,9 @@ class BerryHarvestingNode(Node):
                 return False
         return True
 
+    def size_to_PWM(self,size):
+        return ((size-15)*2+50)
+
     def inverse_kinematics(self, x, z, phi, L1, L2, L3):
         """
         改进的逆运动学计算，允许末端执行器角度自由变化
@@ -402,7 +413,7 @@ class BerryHarvestingNode(Node):
             
             # 检查是否可达
             if d > (L1 + L2) or d < abs(L1 - L2):
-                self.get_logger().warn("目标位置无法到达1")
+                self.get_logger().warn("目标位置无法到达")
                 return None
                 
             # 计算theta2（肘部角度）

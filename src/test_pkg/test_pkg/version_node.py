@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# version_node.py
 import os 
 from std_srvs.srv import Empty
 import logging 
@@ -139,8 +140,7 @@ class BerryDetectionNode(Node):
         if (self.arm_status.ready and 
             not self.arm_status.trajectory_active and 
             self.arm_status.error_code == 0 and
-            self.detected_berries and
-            self.detection_active):
+            self.detected_berries ):
             self.get_logger().info("Detected berries ready for path planning")  
             self.call_path_plan_service()
  
@@ -234,7 +234,7 @@ class BerryDetectionNode(Node):
                 debug_msg = self.bridge.cv2_to_imgmsg(debug_image, encoding="bgr8")
                 debug_msg.header.stamp = self.get_clock().now().to_msg()
                 self.debug_image_pub.publish(debug_msg)
-                # self.get_logger().info("Debug image published")
+                self.get_logger().info("蓝莓识别图像已发布")
             except Exception as e:
                 self.get_logger().error(f"Error publishing debug image: {str(e)}")
         
@@ -264,6 +264,7 @@ class BerryDetectionNode(Node):
             berry_msg.position  = berry['position']
             berry_msg.confidence  = berry['confidence']
             berry_msg.is_ripe  = berry['is_ripe']
+            berry_msg.size = berry['size']
             request.berries.berries.append(berry_msg)
             if len(request.berries.berries) >= self.get_parameter('max_berries_per_batch').value: 
                 break
@@ -293,52 +294,77 @@ class BerryDetectionNode(Node):
             self.get_logger().error(f"Service call failed: {str(e)}")
  
     def process_detections_3d(self, detections):
-        """处理检测结果并计算3D位置"""
+        """处理检测结果并计算3D位置及尺寸"""
         detected_points = []
         
-        # 处理每个检测到的蓝莓 
         for berry in detections:
-            # 获取深度值 (中值滤波减少噪声)
             x, y = berry['center']
             depth = self.get_depth_value(self.current_depth_image, x, y)
-            
             if depth == 0 or depth > self.get_parameter('max_depth').value * 1000:
-                continue 
+                continue
             
-            # 计算3D位置 - 使用深度相机内参
+            # 计算3D位置
             point_3d = self.pixel_to_3d(x, y, depth)
             
-            # 转换到目标坐标系
+            # 估算蓝莓实际尺寸（直径）
+            bbox_w = berry['bbox'][2]   # 边界框宽度（像素）
+            bbox_h = berry['bbox'][3]   # 边界框高度（像素）
+            size = self.pixel_to_size(bbox_w, bbox_h, depth)
+            self.get_logger().info(f"蓝莓大小:{size}")
+            
+            # 转换到目标坐标系（位置转换）
             point_stamped = PointStamped()
-            point_stamped.header.frame_id = self.get_parameter('camera_frame').value 
-            point_stamped.header.stamp = self.get_clock().now().to_msg() 
+            point_stamped.header.frame_id = self.get_parameter('camera_frame').value
+            point_stamped.header.stamp = self.get_clock().now().to_msg()
             point_stamped.point = Point(x=point_3d[0], y=point_3d[1], z=point_3d[2])
             
             try:
-                transform = self.tf_buffer.lookup_transform( 
-                    self.get_parameter('target_frame').value, 
-                    point_stamped.header.frame_id, 
-                    rclpy.time.Time() 
+                transform = self.tf_buffer.lookup_transform(
+                    self.get_parameter('target_frame').value,
+                    point_stamped.header.frame_id,
+                    rclpy.time.Time()
                 )
                 transformed_point = do_transform_point(point_stamped, transform)
                 
-                # 添加到临时列表 
-                detected_points.append({ 
-                    'position': transformed_point.point, 
+                detected_points.append({
+                    'position': transformed_point.point,
                     'confidence': berry['confidence'],
                     'is_ripe': berry['is_ripe'],
-                    'image_coords': (x, y)  # 存储图像坐标用于排序 
+                    'size': size,                     # 新增尺寸字段
+                    'image_coords': (x, y)
                 })
-                
             except TransformException as e:
                 self.get_logger().warn(f"TF transform failed: {str(e)}")
-                continue 
+                continue
         
-        # 按图像坐标排序（左上到右下）
         detected_points.sort(key=lambda p: (p['image_coords'][1], p['image_coords'][0]))
-        
         return detected_points
  
+    
+    def pixel_to_size(self, pixel_width, pixel_height, depth_mm):
+        """
+        将像素尺寸转换为实际物理尺寸（直径）
+        :param pixel_width: 边界框宽度（像素）
+        :param pixel_height: 边界框高度（像素）
+        :param depth_mm: 深度值（毫米）
+        :return: 实际直径（米）
+        """
+        if not self.depth_info:
+            return 0.0
+        
+        fx = self.depth_info.k[0]  # 水平方向焦距（像素）
+        fy = self.depth_info.k[4]  # 垂直方向焦距（像素）
+        
+        depth_m = depth_mm / 1000.0
+        
+        # 分别计算宽度和高度对应的实际尺寸
+        real_width = (pixel_width * depth_m) / fx
+        real_height = (pixel_height * depth_m) / fy
+        
+        # 取平均值作为直径（假设蓝莓近似圆形）
+        diameter = (real_width + real_height) / 2.0
+        return (diameter*1000)
+
     def get_depth_value(self, depth_image, x, y, kernel_size=5):
         """获取深度值 (使用中值滤波减少噪声)"""
         h, w = depth_image.shape 

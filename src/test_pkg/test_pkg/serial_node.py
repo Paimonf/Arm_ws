@@ -1,4 +1,5 @@
 #!/usr/bin/env python3 
+# serial_node.py
 import rclpy
 from rclpy.node  import Node
 from rclpy.action  import ActionServer 
@@ -22,6 +23,7 @@ class STM32Command(Enum):
     CMD_SYNC = 0xAA             # 同步命令
     CMD_SET_TRAJECTORY = 0x10   # 设置轨迹命令
     CMD_GET_STATUS = 0x20       # 获取状态命令
+    CMD_SET_MOTOR = 0x40        # 设置电机状态命令
     CMD_EMERGENCY_STOP = 0xF0   # 紧急停止命令 
     CMD_HOME = 0x30             # 回HOME命令
  
@@ -59,6 +61,7 @@ class STM32CommunicationNode(Node):
                 ('test_mode', False),             # 测试模式 
                 ('test_interval', 5.0),          # 测试发送间隔(秒)
                 ('test_positions', [0.0, 0.0, 0.0, -2.0]),  # 测试位置数据 (0-1000)
+                ('PWM_limits',[50,80])
             ]
         )
 
@@ -78,7 +81,10 @@ class STM32CommunicationNode(Node):
         self.angle_range  = self.max_angle  - self.min_angle 
         self.test_mode  = self.get_parameter('test_mode').value  
         self.test_interval  = self.get_parameter('test_interval').value 
-        self.test_positions  = self.get_parameter('test_positions').value  
+        self.test_positions  = self.get_parameter('test_positions').value
+        self.PWM_limits=self.get_parameter('PWM_limits').value
+        self.min_PWM = self.PWM_limits[0]
+        self.max_PWM = self.PWM_limits[1]  
         
         # 串口对象
         self.serial_conn  = None 
@@ -598,14 +604,34 @@ class STM32CommunicationNode(Node):
         
         # 发送轨迹点
         for i, point in enumerate(trajectory.points):
-            if not self.send_trajectory_point(point):
-                goal_handle.abort()
-                result = FollowJointTrajectory.Result()
-                result.error_code = FollowJointTrajectory.Result.INVALID_GOAL
-                result.error_string = f"Failed to send trajectory point {i+1}"
-                return result
-            
-            time.sleep(2)
+            if (i-1)%2==0 and i>2:
+                # 将弧度转换为 0-1000 范围
+                size = int(point.positions[3])
+                PWM=int((size-15)*2+50)
+                PWM= max(self.min_PWM, min(self.max_PWM, PWM))  # 注意原代码中有负号
+                self.get_logger().info(f"PWM={PWM}")
+                # 打包为字节数组
+                data = struct.pack('>H', PWM)
+                if not self.send_command_with_retry( 
+                STM32Command.CMD_SET_MOTOR.value, 
+                data,
+                expected_response=STM32Response.RESP_ACK.value  
+                ):
+                    goal_handle.abort()
+                    result = FollowJointTrajectory.Result()
+                    result.error_code = FollowJointTrajectory.Result.INVALID_GOAL
+                    result.error_string = f"Failed to send trajectory point {i+1}"
+                    return result
+                time.sleep(4)
+            else:
+                if not self.send_trajectory_point(point):
+                    goal_handle.abort()
+                    result = FollowJointTrajectory.Result()
+                    result.error_code = FollowJointTrajectory.Result.INVALID_GOAL
+                    result.error_string = f"Failed to send trajectory point {i+1}"
+                    return result
+                
+                
             
             # 发布反馈
             feedback = FollowJointTrajectory.Feedback()
