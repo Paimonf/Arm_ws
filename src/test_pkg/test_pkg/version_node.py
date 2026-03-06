@@ -16,7 +16,7 @@ from geometry_msgs.msg import Point, PointStamped
 from tf2_geometry_msgs import do_transform_point
 from tf2_ros import Buffer, TransformListener, TransformException
 from blueberry_interfaces.msg import Berry, DetectedBerries, ArmStatus
-from blueberry_interfaces.srv import PathPlan 
+from blueberry_interfaces.srv import PathPlan ,SetParams
 from ultralytics import YOLO
 import time 
  
@@ -37,6 +37,7 @@ class BerryDetectionNode(Node):
                 ('max_depth', 1.5),   # 最大有效深度(m)
                 ('max_berries_per_batch', 5),  # 单次采摘最大蓝莓数 
                 ('detection_rate', 5.0),  # 检测频率(Hz)
+                ('iou_thres', 0.5)
             ]
         )
         
@@ -50,6 +51,9 @@ class BerryDetectionNode(Node):
         self.current_depth_image = None 
         self.results = None
         self.last_detection_time = time.time() 
+
+        self.min_confidence=self.get_parameter('min_confidence').value
+        self.iou_thres=self.get_parameter('iou_thres').value
         
         # 机械臂状态
         self.arm_status = ArmStatus()
@@ -57,7 +61,8 @@ class BerryDetectionNode(Node):
         self.arm_status.ready = False
         self.arm_status.trajectory_active = False
         self.arm_status.error_code = 0
-        
+
+        self.detection_active = False
         # 检测结果缓存
         self.detected_berries = []
         
@@ -69,6 +74,11 @@ class BerryDetectionNode(Node):
         # 订阅话题 
         qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
         
+        self.berries_pub = self.create_publisher(DetectedBerries, '/detected_berries', 10)
+
+        # 新增服务
+        self.set_params_srv = self.create_service(SetParams, 'set_detection_params', self.set_params_callback)
+
         # 彩色图像订阅 
         self.color_sub = self.create_subscription( 
             Image,
@@ -115,6 +125,12 @@ class BerryDetectionNode(Node):
             self.start_detection_callback
         )
         
+        self.stop_detection_service = self.create_service(
+            Empty, 
+            'stop_detection', 
+            self.stop_detection_callback
+        )        
+
         # 创建路径规划服务客户端
         self.path_plan_client = self.create_client(PathPlan, 'path_plan')
         
@@ -132,6 +148,13 @@ class BerryDetectionNode(Node):
         self.detection_active = True
         self.get_logger().info("检测已启动")
         return response
+    
+    def stop_detection_callback(self, request, response):
+        """处理启动检测服务请求"""
+        self.detection_active = False
+        self.get_logger().info("检测已关闭")
+        return response
+        
     def arm_status_callback(self, msg):
         """处理机械臂状态更新"""
         self.arm_status = msg
@@ -140,10 +163,27 @@ class BerryDetectionNode(Node):
         if (self.arm_status.ready and 
             not self.arm_status.trajectory_active and 
             self.arm_status.error_code == 0 and
-            self.detected_berries ):
+            self.detected_berries and self.detection_active):
             self.get_logger().info("Detected berries ready for path planning")  
             self.call_path_plan_service()
  
+    def set_params_callback(self, request, response):
+            try:
+                self.set_parameters([
+                    rclpy.parameter.Parameter('min_confidence', rclpy.Parameter.Type.DOUBLE, request.confidence),
+                    rclpy.parameter.Parameter('iou_thres', rclpy.Parameter.Type.DOUBLE, request.iou)
+                ])
+                self.min_confidence=self.get_parameter("min_confidence").value
+                self.iou_thres=self.get_parameter("iou_thres").value
+                response.success = True
+                response.message = "Parameters updated"
+                self.get_logger().info(f"设置置信度：{self.min_confidence}")
+                self.get_logger().info(f"设置交并比阈值：{self.iou_thres}")
+            except Exception as e:
+                response.success = False
+                response.message = str(e)
+            return response
+
     def color_info_callback(self, msg):
         """处理彩色相机内参信息"""
         if not self.color_info: 
@@ -198,7 +238,7 @@ class BerryDetectionNode(Node):
         for result in self.results:
             for box in result.boxes: 
                 confidence = float(box.conf) 
-                if confidence < self.get_parameter('min_confidence').value: 
+                if confidence < self.min_confidence: 
                     continue
                     
                 # 获取边界框坐标 (xywh格式)
@@ -235,10 +275,24 @@ class BerryDetectionNode(Node):
                 debug_msg.header.stamp = self.get_clock().now().to_msg()
                 self.debug_image_pub.publish(debug_msg)
                 self.get_logger().info("蓝莓识别图像已发布")
+                # 发布检测结果
+                berries_msg = DetectedBerries()
+                berries_msg.header.stamp = self.get_clock().now().to_msg()
+                berries_msg.header.frame_id = self.get_parameter('target_frame').value
+                for berry in self.detected_berries:
+                    b = Berry()
+                    b.id = len(berries_msg.berries)
+                    b.position = berry['position']
+                    b.confidence = berry['confidence']
+                    b.is_ripe = berry['is_ripe']
+                    b.size = berry['size']
+                    berries_msg.berries.append(b)
+                berries_msg.batch_size = len(berries_msg.berries)
+                self.berries_pub.publish(berries_msg)
+                self.get_logger().info("蓝莓识别信息已发布")
             except Exception as e:
                 self.get_logger().error(f"Error publishing debug image: {str(e)}")
-        
- 
+
     def call_path_plan_service(self):
         """调用路径规划服务"""
         if not self.path_plan_client.wait_for_service(timeout_sec=1.0):

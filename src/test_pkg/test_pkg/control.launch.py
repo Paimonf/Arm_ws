@@ -1,11 +1,14 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, ExecuteProcess
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource, FrontendLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 
 def generate_launch_description():
+
+
     # 声明参数
     use_sim_time = DeclareLaunchArgument(
         'use_sim_time',
@@ -86,5 +89,5 @@ def generate_launch_description():
         serial_node,
         # pathplan_moveit_node,
         pathplan_node,
-        # debug_image_relay
+        # debug_image_relay,
     ])

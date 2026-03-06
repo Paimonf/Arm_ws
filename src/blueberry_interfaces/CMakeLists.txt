@@ -20,6 +20,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/DetectBerries.srv"
   "srv/PathPlan.srv"
   "srv/SystemControl.srv"
+  "srv/SetParams.srv"
   # "msg/Target.msg"
   # "msg/Targets.msg"
   # "srv/StartDec.srv"

@@ -1,0 +1,193 @@
+/* Global Styles */
+QMainWindow {
+    background-color: #55aaff;
+}
+
+QWidget {
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #334155; /* Slate-700 */
+    font-size: 14px;
+}
+
+/* Headers */
+QLabel#label_3 { /* Main Title */
+    color: #9A3412; /* Orange-800 */
+    font-weight: 800;
+    font-size: 26px;
+    padding: 15px;
+    letter-spacing: -0.5px;
+}
+
+QLabel#label_2, QLabel#label_12 { /* Subtitles */
+    color: #F97316; /* Orange-500 */
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Cards (GroupBox) */
+QGroupBox {
+    background-color: rgba(255, 255, 255, 0.85); /* 半透明白色 */
+    border: 1px solid #FFEDD5; /* Orange-100 */
+    border-radius: 16px;
+    margin-top: 1.2em;
+    padding-top: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #431407; /* Orange-900 */
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 20px;
+    top: 0px;
+    padding: 0 5px;
+    color: #EA580C; /* Orange-600 */
+    background-color: transparent;
+}
+
+/* --- Button Systems --- */
+
+/* Base Button */
+QPushButton {
+    background-color: #FFFFFF;
+    color: #57534E; /* Stone-600 */
+    border: 1px solid #E7E5E4; /* Stone-200 */
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+QPushButton:hover {
+    background-color: #FFFAF0; /* FloralWhite */
+    color: #292524;
+    border-color: #FDBA74; /* Orange-300 */
+}
+
+QPushButton:pressed {
+    background-color: #FED7AA;
+}
+
+/* Tool/Action Buttons (Sidebar) - Fruit Theme */
+QPushButton#PicBtn, QPushButton#FilesBtn, QPushButton#VideoBtn, QPushButton#CapBtn {
+    background-color: #FFEDD5; /* Orange-100 */
+    color: #C2410C; /* Orange-700 */
+    border: 1px solid #FED7AA; /* Orange-200 */
+}
+
+QPushButton#PicBtn:hover, QPushButton#FilesBtn:hover, QPushButton#VideoBtn:hover, QPushButton#CapBtn:hover {
+    background-color: #FED7AA; /* Orange-200 */
+    border-color: #FB923C;
+    color: #9A3412; /* Orange-800 */
+}
+
+/* Save Button - Fresh Green */
+QPushButton#SaveBtn {
+    background-color: #DCFCE7; /* Green-100 */
+    color: #15803D; /* Green-700 */
+    border: 1px solid #BBF7D0;
+}
+
+QPushButton#SaveBtn:hover {
+    background-color: #BBF7D0; /* Green-200 */
+    border-color: #86EFAC;
+    color: #14532D;
+}
+
+/* Exit Button - Soft Red */
+QPushButton#ExitBtn {
+    background-color: #FEE2E2; /* Red-50 */
+    color: #B91C1C; /* Red-700 */
+    border: 1px solid #FECACA;
+}
+
+QPushButton#ExitBtn:hover {
+    background-color: #FECACA; /* Red-200 */
+    border-color: #F87171;
+    color: #7F1D1D;
+}
+
+/* Inputs */
+QLineEdit, QDoubleSpinBox, QComboBox {
+    background-color: #FFFFFF;
+    border: 1px solid #E7E5E4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #44403C;
+    selection-background-color: #F97316; /* Orange-500 */
+}
+
+QLineEdit:focus, QDoubleSpinBox:focus, QComboBox:focus {
+    border: 1px solid #F97316; /* Orange-500 */
+    background-color: #FFFAF0;
+}
+
+/* Table Widget */
+QTableWidget {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #FED7AA;
+    border-radius: 12px;
+    gridline-color: transparent;
+    selection-background-color: #FFEDD5;
+    selection-color: #7C2D12;
+    outline: none;
+}
+
+QHeaderView::section {
+    background-color: #FFF7ED;
+    color: #9A3412;
+    padding: 12px;
+    border: none;
+    border-bottom: 2px solid #FED7AA;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+QTableWidget::item {
+    padding: 8px;
+    border-bottom: 1px solid #FFF7ED;
+}
+
+/* Data Labels - Monospace for numbers */
+QLabel#time_lb, QLabel#label_nums, QLabel#type_lb, QLabel#label_conf,
+QLabel#label_xmin, QLabel#label_ymin, QLabel#label_xmax, QLabel#label_ymax {
+    color: #C2410C; /* Orange-700 */
+    font-weight: 700;
+    font-family: "JetBrains Mono", "Consolas", monospace;
+    background-color: #FFEDD5; /* Orange-100 */
+    border-radius: 4px;
+    padding: 2px 6px;
+    border: 1px solid #FED7AA;
+}
+
+/* Clean up Frames */
+QFrame#frame_5, QFrame#frame_2, QFrame#frame_4, QFrame#frame_6 {
+    background: transparent;
+    border: none;
+}
+
+QFrame#frame_2 { /* Image Area Container */
+    border: 2px dashed #FDBA74; /* Orange-300 */
+    border-radius: 16px;
+    background-color: rgba(255, 247, 237, 0.5); /* Semi-transparent Orange-50 */
+}
+
+/* ScrollBars */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 8px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #FDBA74;
+    min-height: 20px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #F97316;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}

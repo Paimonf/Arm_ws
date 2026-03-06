@@ -1,0 +1,5 @@
+float64 confidence
+float64 iou
+---
+bool success
+string message
