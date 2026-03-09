@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# main_withlogin.py
+# main.py
 import time
 import sys
 import os
@@ -494,6 +494,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+        self.setMinimumSize(800, 500)
+        self.resize(1024, 768)
         self.initMain()
         self.signalconnect()
 
@@ -527,14 +529,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 添加控制按钮（若UI中没有，手动添加）
         # 假设已有按钮对象：self.start_harvest_btn, self.stop_harvest_btn
         # 如果UI中没有，可以在initMain中添加：
-        if not hasattr(self, 'start_harvest_btn'):
-            self.start_harvest_btn = QPushButton("开始采摘", self)
-            self.start_harvest_btn.setGeometry(340, 857, 100, 40)  # 根据实际布局调整
-            self.start_harvest_btn.clicked.connect(self.on_start_harvest)
-        if not hasattr(self, 'stop_harvest_btn'):
-            self.stop_harvest_btn = QPushButton("停止采摘", self)
-            self.stop_harvest_btn.setGeometry(640, 857, 100, 40)
-            self.stop_harvest_btn.clicked.connect(self.on_stop_harvest)
+         # 根据实际布局调整
+        self.start_harvest_btn.clicked.connect(self.on_start_harvest)
+        self.stop_harvest_btn.clicked.connect(self.on_stop_harvest)
 
         # 禁用原有的YOLO模型相关功能
         self.model = None  # 移除YOLO加载
@@ -560,6 +557,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ExitBtn.clicked.connect(QCoreApplication.quit)
         self.FilesBtn.clicked.connect(self.detact_batch_imgs)
 
+
+
     def initMain(self):
         # 启用拖拽和点击
         self.setAcceptDrops(True)
@@ -570,11 +569,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.is_camera_open = False
         self.cap = None
         self.draw_img = None
-
-        # 移除模型加载
-        # self.device = 0 if torch.cuda.is_available() else 'cpu'
-        # self.model = YOLO(config.model_path, task='detect')
-        # self.model(np.zeros((48,48,3)), device=self.device)
 
         self.fontC = ImageFont.truetype("Font/platech.ttf", 25, 0)
         self.colors = tools.Colors()
@@ -734,8 +728,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon('UI/ui_imgs/icons/目标检测.png'))
-    login_widget = LoginWidget()
+    #login_widget = LoginWidget()
     main_window = MainWindow()
-    login_widget.login_success_signal.connect(main_window.show)
-    login_widget.show()
+    #login_widget.login_success_signal.connect(main_window.show)
+    #login_widget.show()
+    main_window.show()
     sys.exit(app.exec_())

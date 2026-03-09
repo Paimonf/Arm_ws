@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# UiMain.py
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_MainWindow(object):
@@ -216,10 +216,28 @@ class Ui_MainWindow(object):
         self.textEdit_analysis.setObjectName("textEdit_analysis")
         self.textEdit_analysis.setReadOnly(True)
         self.textEdit_analysis.setPlaceholderText("检测结果分析将显示在这里...")
-        self.textEdit_analysis.setMinimumHeight(100) # Ensure visibility
+        self.textEdit_analysis.setMinimumHeight(40) # Ensure visibility
         self.verticalLayoutAnalysis.addWidget(self.textEdit_analysis)
         self.verticalLayoutRight.addWidget(self.groupBox_5, 1) # Add stretch factor 1 to take remaining space
 
+        # 在右侧面板底部添加按钮布局
+        self.button_layout = QtWidgets.QHBoxLayout()
+        self.button_layout.setSpacing(10)
+        self.button_layout.setObjectName("button_layout")
+
+        self.start_harvest_btn = QtWidgets.QPushButton(self.rightFrame)
+        self.start_harvest_btn.setObjectName("start_harvest_btn")
+        self.start_harvest_btn.setText("开始采摘")
+        self.start_harvest_btn.setMinimumHeight(40)
+
+        self.stop_harvest_btn = QtWidgets.QPushButton(self.rightFrame)
+        self.stop_harvest_btn.setObjectName("stop_harvest_btn")
+        self.stop_harvest_btn.setText("停止采摘")
+        self.stop_harvest_btn.setMinimumHeight(40)
+
+        self.button_layout.addWidget(self.start_harvest_btn)
+        self.button_layout.addWidget(self.stop_harvest_btn)
+        self.verticalLayoutRight.addLayout(self.button_layout)
         # Removed label_12 (Org Name) as requested
         
         self.mainSplitter.addWidget(self.centerFrame)
