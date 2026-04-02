@@ -100,7 +100,7 @@ class BerryDetectionNode(Node):
             ArmStatus,
             '/arm_status',
             self.arm_status_callback,
-            10
+            1
         )
         
         # 彩色相机内参订阅 
@@ -163,9 +163,10 @@ class BerryDetectionNode(Node):
         if (self.arm_status.ready and 
             not self.arm_status.trajectory_active and 
             self.arm_status.error_code == 0 and
-            self.detected_berries and self.detection_active):
+            self.detected_berries ):#and self.detection_active
             self.get_logger().info("Detected berries ready for path planning")  
             self.call_path_plan_service()
+            
  
     def set_params_callback(self, request, response):
             try:
@@ -274,7 +275,7 @@ class BerryDetectionNode(Node):
                 debug_msg = self.bridge.cv2_to_imgmsg(debug_image, encoding="bgr8")
                 debug_msg.header.stamp = self.get_clock().now().to_msg()
                 self.debug_image_pub.publish(debug_msg)
-                self.get_logger().info("蓝莓识别图像已发布")
+                # self.get_logger().info("蓝莓识别图像已发布")
                 # 发布检测结果
                 berries_msg = DetectedBerries()
                 berries_msg.header.stamp = self.get_clock().now().to_msg()
@@ -289,7 +290,7 @@ class BerryDetectionNode(Node):
                     berries_msg.berries.append(b)
                 berries_msg.batch_size = len(berries_msg.berries)
                 self.berries_pub.publish(berries_msg)
-                self.get_logger().info("蓝莓识别信息已发布")
+                # self.get_logger().info("蓝莓识别信息已发布")
             except Exception as e:
                 self.get_logger().error(f"Error publishing debug image: {str(e)}")
 
@@ -364,7 +365,7 @@ class BerryDetectionNode(Node):
             bbox_w = berry['bbox'][2]   # 边界框宽度（像素）
             bbox_h = berry['bbox'][3]   # 边界框高度（像素）
             size = self.pixel_to_size(bbox_w, bbox_h, depth)
-            self.get_logger().info(f"蓝莓大小:{size}")
+            # self.get_logger().info(f"蓝莓大小:{size}")
             
             # 转换到目标坐标系（位置转换）
             point_stamped = PointStamped()
@@ -387,6 +388,7 @@ class BerryDetectionNode(Node):
                     'size': size,                     # 新增尺寸字段
                     'image_coords': (x, y)
                 })
+                # self.get_logger().info(f"位置：{transformed_point.point}")
             except TransformException as e:
                 self.get_logger().warn(f"TF transform failed: {str(e)}")
                 continue

@@ -7,6 +7,10 @@ from rclpy.duration import Duration
 import numpy as np
 import math
 from enum import Enum
+
+import ikpy
+from ikpy.chain import Chain
+from test_pkg.func_pkg.myik import calculate_joint_angles
  
 from blueberry_interfaces.srv import PathPlan
 from blueberry_interfaces.msg import Berry, DetectedBerries 
@@ -201,8 +205,19 @@ class BerryHarvestingNode(Node):
                                   f"x={berry.position.x:.3f}, y={berry.position.y:.3f}, z={berry.position.z:.3f}"
                                   f"size={berry.size}") 
             # 计算采摘该蓝莓所需的关节角度
-            joint_angles = self.calculate_joint_angles(berry.position) 
-            
+
+            #方法1：
+            #joint_angles = self.calculate_joint_angles(berry.position) 
+
+            #方法2：
+            # joint_angles = calculate_joint_angles(berry.position.x,berry.position.y,berry.position.z,self.base_height,
+            #                                       self.l1,self.l2,self.l3,self.preferred_orientation,
+            #                                       self.ik_solution_attempts) 
+            #方法3：
+            my_chain = Chain.from_urdf_file("/home/sh/Arm_ws/src/arm_description/urdf/blueberry_arm.urdf.xacro")
+            all_joint_angles = my_chain.inverse_kinematics([berry.position.x,berry.position.y,berry.position.z])
+            joint_angles=[all_joint_angles[1],all_joint_angles[2],all_joint_angles[3],all_joint_angles[4],]
+
             if joint_angles is None:
                 self.get_logger().warn(f"跳过蓝莓 {i+1} - unreachable")
                 continue

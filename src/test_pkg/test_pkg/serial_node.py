@@ -52,11 +52,11 @@ class STM32CommunicationNode(Node):
                 ('serial_port', '/dev/ttyUSB0'),  # 串口设备路径
                 ('baud_rate', 115200),           # 波特率
                 ('joint_names', ['base_rotation_joint', 'joint1', 'joint2', 'joint3']),
-                ('update_rate', 1.0),           # 状态更新频率(Hz)
+                ('update_rate', 2),           # 状态更新频率(Hz)
                 ('max_trajectory_points', 50),   # 最大轨迹点数 
                 ('status_topic', '/arm_status'), # 状态话题
                 ('max_retries', 6),              # 最大重试次数
-                ('ack_timeout', 1.0),            # ACK超时时间(秒)
+                ('ack_timeout', 6.0),            # ACK超时时间(秒)
                 ('joint_limits', [-2.094395, 2.094395]),  # 0° 到 240° 的弧度值 [0.0, 4.18879]
                 ('test_mode', False),             # 测试模式 
                 ('test_interval', 5.0),          # 测试发送间隔(秒)
@@ -463,7 +463,7 @@ class STM32CommunicationNode(Node):
         # 定期请求状态更新 
         if self.request_status(): 
             # 读取并处理状态响应
-            response = self.read_response(timeout=0.1) 
+            response = self.read_response(timeout=0.6) 
             if response:
                 # 检查响应类型
                 if response[0] == STM32Response.RESP_STATUS.value: 
