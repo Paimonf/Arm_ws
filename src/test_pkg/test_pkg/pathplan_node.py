@@ -34,7 +34,7 @@ class BerryHarvestingNode(Node):
                 ('arm.l2', 0.129),   # 关节2到关节3的长度
                 ('arm.l3', 0.121),   # 关节3到末端执行器的长度 
                 ('arm.base_height', 0.103),  # 基座到关节1的高度
-                ('home_position', [0.0, 0.0, 0.0, 2.0]),  # 起始位置 [base_rotation, joint1, joint2, joint3]
+                ('home_position', [0.0, -0.523, 1.05, 1.395]),  # 起始位置 [base_rotation, joint1, joint2, joint3]
                 ('approach_distance', 0.05),  # 采摘时末端执行器到蓝莓的距离 
                 ('harvest_time', 2.0),  # 采摘一个蓝莓所需时间(秒)
                 ('move_time', 3.0),     # 移动位置所需时间(秒)
