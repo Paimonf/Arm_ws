@@ -139,16 +139,16 @@
   <link name="arm3_link">
     <visual>
       <geometry>
-        <box size="0.071 0.04 0.04"/>  <!-- 长171mm (含夹爪) -->
+        <box size="0.0525 0.04 0.04"/>  <!-- 长171mm (含夹爪) -->
       </geometry>
-      <origin xyz="0.0355 0 0" rpy="0 0 0"/>
+      <origin xyz="0.02625 0 0" rpy="0 0 0"/>
       <material name="silver"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.071 0.04 0.04"/>
+        <box size="0.0525 0.04 0.04"/>
       </geometry>
-      <origin xyz="0.0355 0 0" rpy="0 0 0"/>
+      <origin xyz="0.02625 0 0" rpy="0 0 0"/>
     </collision>
     <inertial>
       <mass value="0.2"/>
@@ -168,16 +168,16 @@
   <link name="end_effector">
     <visual>
       <geometry>
-        <cylinder length="0.10" radius="0.02"/>  <!-- 简化表示 -->
+        <cylinder length="0.06" radius="0.0125"/>  <!-- 简化表示 -->
       </geometry>
-      <origin xyz="0.05 0 0" rpy="0 1.57 0"/>
+      <origin xyz="0.03 0 0" rpy="0 1.57 0"/>
       <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <cylinder length="0.10" radius="0.02"/>
+        <cylinder length="0.06" radius="0.0125"/>
       </geometry>
-      <origin xyz="0.05 0 0" rpy="0 1.57 0"/>
+      <origin xyz="0.03 0 0" rpy="0 1.57 0"/>
     </collision>
     <inertial>
       <mass value="0.1"/>
@@ -188,21 +188,21 @@
   <joint name="gripper_joint" type="fixed">
     <parent link="arm3_link"/>
     <child link="end_effector"/>
-    <origin xyz="0.071 0 0" rpy="0 0 0"/>  <!-- 位于arm3末端 -->
+    <origin xyz="0.0525 0.04 -0.0275" rpy="0 0 0"/>  <!-- 位于arm3末端 -->
   </joint>
  
   <!-- 相机 -->
   <link name="camera_link">
     <visual>
       <geometry>
-        <box size="0.0155 0.0653 0.0225"/>  
+        <box size="0.0155 0.0653 0.031"/>  
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.0155 0.0653 0.0225"/>
+        <box size="0.0155 0.0653 0.031"/>
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </collision>
@@ -215,7 +215,7 @@
   <joint name="camera_joint" type="fixed">
     <parent link="arm3_link"/>
     <child link="camera_link"/>
-    <origin xyz="0.071 0 0.03125" rpy="0 0 0"/>  
+    <origin xyz="0.0525 0 0.048" rpy="0 0 0"/>  
   </joint>
  
   <!-- 光学坐标系定义 -->

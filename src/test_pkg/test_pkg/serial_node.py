@@ -323,6 +323,8 @@ class STM32CommunicationNode(Node):
             data.extend(struct.pack('>H',  pos))  # 大端16位无符号整数 (0-1000)
 
         self.get_logger().info(f"发送舵机角度: {positions}")
+        self.current_joint_positions=point.positions
+        self.publish_joint_state()
         
         # 发送命令 
         return self.send_command_with_retry( 

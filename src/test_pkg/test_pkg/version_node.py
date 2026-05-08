@@ -356,8 +356,9 @@ class BerryDetectionNode(Node):
             x, y = berry['center']
             depth = self.get_depth_value(self.current_depth_image, x, y)
             if depth == 0 or depth > self.get_parameter('max_depth').value * 1000:
+                #self.get_logger().info(f"蓝莓距离太近或太元:{depth}")
                 continue
-            
+            #self.get_logger().info(f"距离：{depth}")
             # 计算3D位置
             point_3d = self.pixel_to_3d(x, y, depth)
             
@@ -388,7 +389,7 @@ class BerryDetectionNode(Node):
                     'size': size,                     # 新增尺寸字段
                     'image_coords': (x, y)
                 })
-                # self.get_logger().info(f"位置：{transformed_point.point}")
+                #self.get_logger().info(f"位置：{transformed_point.point}")
             except TransformException as e:
                 self.get_logger().warn(f"TF transform failed: {str(e)}")
                 continue

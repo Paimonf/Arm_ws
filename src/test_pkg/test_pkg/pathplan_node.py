@@ -8,6 +8,9 @@ import numpy as np
 import math
 from enum import Enum
 
+import xacro
+import tempfile
+
 import ikpy
 from ikpy.chain import Chain
 from test_pkg.func_pkg.myik import calculate_joint_angles
@@ -67,6 +70,18 @@ class BerryHarvestingNode(Node):
         self.current_joint_velocities = None 
         self.joint_state_received = False 
         
+        xacro_file = "/home/sh/Arm_ws/src/arm_description/urdf/blueberry_arm.urdf.xacro"
+        urdf_string = xacro.process_file(xacro_file).toprettyxml()
+        
+        # 创建临时文件
+        self.temp_urdf_file = tempfile.NamedTemporaryFile(mode='w', suffix='.urdf', delete=False)
+        self.temp_urdf_file.write(urdf_string)
+        self.temp_urdf_file.close()   # 关闭文件句柄，但文件保留在磁盘上
+        
+        # 从临时文件加载 IK 链
+        self.ik_chain = Chain.from_urdf_file(self.temp_urdf_file.name)
+        self.ik_joint_names = [link.name for link in self.ik_chain.links]
+        self.get_logger().info(f"IKpy chain joints: {self.ik_joint_names}")
         # 创建路径规划服务
         self.path_plan_service = self.create_service(
             PathPlan,
@@ -204,6 +219,11 @@ class BerryHarvestingNode(Node):
             self.get_logger().info(f"Planning path for berry {i+1} at position:"
                                   f"x={berry.position.x:.3f}, y={berry.position.y:.3f}, z={berry.position.z:.3f}"
                                   f"size={berry.size}") 
+            
+            d = math.sqrt(berry.position.x**2 + berry.position.y**2 + (berry.position.z - self.base_height)**2)
+            if d > (self.l1 + self.l2 + self.l3) + 0.03:   # 留 3cm 余量
+                self.get_logger().warn("目标点超出机械臂最大工作空间，跳过")
+                continue
             # 计算采摘该蓝莓所需的关节角度
 
             #方法1：
@@ -214,10 +234,47 @@ class BerryHarvestingNode(Node):
             #                                       self.l1,self.l2,self.l3,self.preferred_orientation,
             #                                       self.ik_solution_attempts) 
             #方法3：
-            my_chain = Chain.from_urdf_file("/home/sh/Arm_ws/src/arm_description/urdf/blueberry_arm.urdf.xacro")
-            all_joint_angles = my_chain.inverse_kinematics([berry.position.x,berry.position.y,berry.position.z])
-            joint_angles=[all_joint_angles[1],all_joint_angles[2],all_joint_angles[3],all_joint_angles[4],]
+            # my_chain = Chain.from_urdf_file("/home/sh/Arm_ws/src/arm_description/urdf/blueberry_arm.urdf.xacro")
+            # all_joint_angles = my_chain.inverse_kinematics([berry.position.x,berry.position.y,berry.position.z])
+            # joint_angles=[all_joint_angles[1],all_joint_angles[2],all_joint_angles[3],all_joint_angles[4],]
 
+            #方法4：
+            # 目标位置
+            target_pos = [berry.position.x, berry.position.y, berry.position.z]
+
+            # 可选：设置当前关节状态作为初始猜测
+            initial = self.current_joint_positions   # 这是按 self.joint_names 顺序的
+            # 需要转换为 ik_chain 的顺序
+            initial_for_ik = [0.0] * len(self.ik_chain.active_links_mask)
+            for i, name in enumerate(self.ik_joint_names):
+                if name in self.joint_names:
+                    idx = self.joint_names.index(name)
+                    initial_for_ik[i] = self.current_joint_positions[idx]
+                else:
+                    # 非活动关节或固定关节可设为0
+                    initial_for_ik[i] = 0.0
+
+            # 求解 IK
+            all_angles = self.ik_chain.inverse_kinematics(
+                target_pos,
+                initial_position=initial_for_ik,
+                max_iter=1000
+            )
+
+            # 按你的 joint_names 顺序提取所需关节角度
+            joint_angles = []
+            for name in self.joint_names:
+                try:
+                    idx = self.ik_joint_names.index(name)
+                    joint_angles.append(all_angles[idx])
+                except ValueError:
+                    self.get_logger().error(f"关节 {name} 不在 IK 链中")
+                    joint_angles = None
+                    break
+
+            if joint_angles is None:
+                continue
+            
             if joint_angles is None:
                 self.get_logger().warn(f"跳过蓝莓 {i+1} - unreachable")
                 continue
